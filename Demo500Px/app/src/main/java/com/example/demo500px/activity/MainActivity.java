@@ -1,4 +1,6 @@
-package com.example.demo500px;
+package com.example.demo500px.activity;
+
+import com.example.demo500px.R;
 
 import android.app.Activity;
 import android.os.Bundle;

@@ -1,4 +1,6 @@
-package com.example.demo500px;
+package com.example.demo500px.fragment;
+
+import com.example.demo500px.R;
 
 import android.app.Fragment;
 import android.os.Bundle;
