@@ -34,6 +34,7 @@ public class MainFragment extends BaseFragment {
         @Override
         public void onCompleted(Exception e, Response<Photos> result) {
             if (e != null) {
+                mCurrentPage--;
                 Toast.makeText(getSupportActivity(), "Please check the internet connection",
                         Toast.LENGTH_SHORT).show();
                 return;
@@ -43,9 +44,12 @@ public class MainFragment extends BaseFragment {
             if (photos != null) {
                 populatePhotosOnUiThread(photos.getPhotos());
             }
+            mIsLoadingMore = false;
         }
     };
 
+    private int mCurrentPage = 1;
+    private boolean mIsLoadingMore = false;
     private View mLoadingView;
 
     public MainFragment() {
@@ -58,22 +62,39 @@ public class MainFragment extends BaseFragment {
         getSupportActivity().setSupportActionBar((Toolbar) view.findViewById(R.id.toolbar));
         mRecyclerView = (RecyclerView) view.findViewById(R.id.grid_thumbnails);
         int numColumns = getResources().getInteger(R.integer.num_columns_thumbnail);
-        GridLayoutManager layoutManager = new GridLayoutManager(getSupportActivity(), numColumns);
+        final GridLayoutManager layoutManager = new GridLayoutManager(getSupportActivity(), numColumns);
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            int firstVisibleItem, visibleItemCount, totalItemCount;
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (mAdapter == null) {
+                    return;
+                }
+
+                firstVisibleItem = layoutManager.findFirstVisibleItemPosition();
+                visibleItemCount = mRecyclerView.getChildCount();
+                totalItemCount = layoutManager.getItemCount();
+
+                boolean loadMore = (totalItemCount - visibleItemCount) <= (firstVisibleItem + 5);
+                if (loadMore && !mIsLoadingMore && dy > 0) {
+                    mIsLoadingMore = true;
+                    mCurrentPage++;
+                    PxApi.getPhotos(MainFragment.this, mCurrentPage, mCallback);
+                }
+            }
+        });
 
         mLoadingView = view.findViewById(R.id.loading_view);
+
+        PxApi.getPhotos(this, mCurrentPage, mCallback);
         return view;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        PxApi.getPhotos(this, 1, mCallback);
-    }
-
     private void populatePhotosOnUiThread(final ArrayList<Photo> photos) {
-        if(!isAdded()){
+        if (!isAdded()) {
             return;
         }
 
@@ -99,7 +120,9 @@ public class MainFragment extends BaseFragment {
                         mRecyclerView.setAdapter(mAdapter);
                         setupRecyclerViewGrid(mRecyclerView, 0);
                     } else {
-                        mPhotos.clear();
+                        if (!mIsLoadingMore) {
+                            mPhotos.clear();
+                        }
                         mPhotos.addAll(photos);
                         mAdapter.notifyDataSetChanged();
                     }
