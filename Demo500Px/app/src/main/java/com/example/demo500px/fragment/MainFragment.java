@@ -1,6 +1,13 @@
 package com.example.demo500px.fragment;
 
 import com.example.demo500px.R;
+import com.example.demo500px.adapter.BaseRecyclerGridAdapter;
+import com.example.demo500px.adapter.PhotoGridAdapter;
+import com.example.demo500px.network.PxApi;
+import com.example.demo500px.network.model.Photo;
+import com.example.demo500px.network.model.Photos;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.ion.Response;
 
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -10,6 +17,10 @@ import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.Toast;
+
+import java.util.ArrayList;
 
 /**
  * A fragment containing a grid of thumbnails
@@ -17,6 +28,25 @@ import android.view.ViewGroup;
 public class MainFragment extends BaseFragment {
 
     private RecyclerView mRecyclerView;
+    private PhotoGridAdapter mAdapter;
+    private ArrayList<Photo> mPhotos;
+    private final FutureCallback<Response<Photos>> mCallback = new FutureCallback<Response<Photos>>() {
+        @Override
+        public void onCompleted(Exception e, Response<Photos> result) {
+            if (e != null) {
+                Toast.makeText(getSupportActivity(), "Please check the internet connection",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Photos photos = result.getResult();
+            if (photos != null) {
+                populatePhotosOnUiThread(photos.getPhotos());
+            }
+        }
+    };
+
+    private View mLoadingView;
 
     public MainFragment() {
     }
@@ -26,12 +56,86 @@ public class MainFragment extends BaseFragment {
             Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main, container, false);
         getSupportActivity().setSupportActionBar((Toolbar) view.findViewById(R.id.toolbar));
-        getSupportActivity().getActionBar().setDisplayHomeAsUpEnabled(true);
         mRecyclerView = (RecyclerView) view.findViewById(R.id.grid_thumbnails);
         int numColumns = getResources().getInteger(R.integer.num_columns_thumbnail);
         GridLayoutManager layoutManager = new GridLayoutManager(getSupportActivity(), numColumns);
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+
+        mLoadingView = view.findViewById(R.id.loading_view);
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        PxApi.getPhotos(this, 1, mCallback);
+    }
+
+    private void populatePhotosOnUiThread(final ArrayList<Photo> photos) {
+        if(!isAdded()){
+            return;
+        }
+
+        getSupportActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mLoadingView.getVisibility() == View.VISIBLE) {
+                    mLoadingView.setVisibility(View.GONE);
+                    mRecyclerView.setVisibility(View.VISIBLE);
+                }
+
+                if (photos != null && !photos.isEmpty()) {
+                    if (mAdapter == null) {
+                        mPhotos = photos;
+                        mAdapter = new PhotoGridAdapter(getSupportActivity(), mPhotos);
+                        mAdapter.setOnItemClickListener(
+                                new BaseRecyclerGridAdapter.OnItemClickListener() {
+                                    @Override
+                                    public void onItemClick(View view, int position) {
+
+                                    }
+                                });
+                        mRecyclerView.setAdapter(mAdapter);
+                        setupRecyclerViewGrid(mRecyclerView, 0);
+                    } else {
+                        mPhotos.clear();
+                        mPhotos.addAll(photos);
+                        mAdapter.notifyDataSetChanged();
+                    }
+                }
+            }
+        });
+    }
+
+    private void setupRecyclerViewGrid(final RecyclerView gridView, final int padding) {
+        // This listener is used to get the final width of the RecyclerView and then calculate the
+        // number of columns and the width of each column. The column width is used to set the height
+        // of each view so we get nice square thumbnails.
+        gridView.getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        int numColumns = ((GridLayoutManager) gridView.getLayoutManager())
+                                .getSpanCount();
+                        int orientation =
+                                ((GridLayoutManager) gridView.getLayoutManager()).getOrientation();
+
+                        if (numColumns > 0) {
+                            int columnWidth;
+                            if (orientation == GridLayoutManager.VERTICAL) {
+                                columnWidth = (gridView.getWidth() - gridView.getPaddingLeft() -
+                                        gridView.getPaddingRight() - (padding * (numColumns - 1))) / numColumns;
+                            } else {
+                                columnWidth = (gridView.getHeight() - gridView.getPaddingTop() -
+                                        gridView.getPaddingBottom() - (padding * (numColumns - 1))) / numColumns;
+                            }
+                            mAdapter.setNumColumns(numColumns);
+                            mAdapter.setItemHeight(columnWidth);
+                            gridView.getViewTreeObserver()
+                                    .removeOnGlobalLayoutListener(this);
+                        }
+                    }
+                });
     }
 }

@@ -1,9 +1,8 @@
-<LinearLayout
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainFragment">
 
     <android.support.v7.widget.Toolbar
@@ -17,6 +16,13 @@
         android:id="@+id/grid_thumbnails"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/loading_view"
+        layout="@layout/indeterminate_progress_view"
+        android:visibility="visible" />
+
 
 </LinearLayout>
