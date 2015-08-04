@@ -2,12 +2,13 @@ package com.example.demo500px.network.model;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  * Created by Kanghee on 15-07-31.
  */
-public class Photo {
+public class Photo implements Serializable {
 
     private int id;
     private String name;
@@ -30,7 +31,17 @@ public class Photo {
         return imageFormats.get(1).getImageUrl();
     }
 
-    public static class ImageFormat {
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof Photo) {
+            return name.equals(((Photo) o).getName());
+        } else if (o instanceof String) {
+            return name.equals(o);
+        }
+        return false;
+    }
+
+    public static class ImageFormat implements Serializable {
 
         public static int SIZE_440 = 440;
         public static int SIZE_1080 = 1080;
