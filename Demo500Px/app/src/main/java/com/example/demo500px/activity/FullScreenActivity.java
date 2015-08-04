@@ -32,9 +32,9 @@ import java.util.ArrayList;
 public class FullScreenActivity extends AppCompatActivity {
 
     public static final int REQUEST_FULL_SCREEN_IMAGE = 10;
-    private static final String EXTRA_POSITION = "extra_position";
-    private static final String EXTRA_PHOTOS = "extra_photos";
-    private static final String EXTRA_CURRENT_PAGE = "extra_current_page";
+    public static final String EXTRA_POSITION = "extra_position";
+    public static final String EXTRA_PHOTOS = "extra_photos";
+    public static final String EXTRA_CURRENT_PAGE = "extra_current_page";
 
     private Toolbar mToolbar;
     private ViewPager mViewPager;
@@ -117,13 +117,28 @@ public class FullScreenActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        populateActivityResult();
+        super.onBackPressed();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
+                populateActivityResult();
                 finish();
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void populateActivityResult() {
+        Intent intent = new Intent();
+        intent.putExtra(EXTRA_PHOTOS, mPhotos);
+        intent.putExtra(EXTRA_CURRENT_PAGE, mCurrentPage);
+        intent.putExtra(EXTRA_POSITION, mViewPager.getCurrentItem());
+        setResult(RESULT_OK, intent);
     }
 
     private static class ViewPagerAdapter extends PagerAdapter {

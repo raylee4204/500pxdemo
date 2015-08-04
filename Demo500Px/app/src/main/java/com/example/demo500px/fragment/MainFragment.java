@@ -10,6 +10,8 @@ import com.example.demo500px.network.model.Photos;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.ion.Response;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
@@ -96,6 +98,22 @@ public class MainFragment extends BaseFragment {
 
         PxApi.getPhotos(this, mCurrentPage, mCallback);
         return view;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FullScreenActivity.REQUEST_FULL_SCREEN_IMAGE) {
+            if (resultCode == Activity.RESULT_OK) {
+                if (data != null) {
+                    mCurrentPage = data.getIntExtra(FullScreenActivity.EXTRA_CURRENT_PAGE, mCurrentPage);
+                    mPhotos =
+                            (ArrayList<Photo>) data.getSerializableExtra(FullScreenActivity.EXTRA_PHOTOS);
+                    mAdapter.notifyDataSetChanged();
+                    mRecyclerView.getLayoutManager().scrollToPosition(data.getIntExtra(FullScreenActivity.EXTRA_POSITION, 0));
+                }
+            }
+        }
     }
 
     private void populatePhotosOnUiThread(final ArrayList<Photo> photos) {
