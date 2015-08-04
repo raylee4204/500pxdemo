@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Demo500Px</string>
+    <string name="photo_transition_name">photo_view</string>
 </resources>

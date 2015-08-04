@@ -17,10 +17,12 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -81,7 +83,6 @@ public class MainFragment extends BaseFragment {
                 firstVisibleItem = layoutManager.findFirstVisibleItemPosition();
                 visibleItemCount = mRecyclerView.getChildCount();
                 totalItemCount = layoutManager.getItemCount();
-
                 if (mCurrentPage < mTotalPages) {
                     boolean loadMore =
                             (totalItemCount - visibleItemCount) <= (firstVisibleItem + 5);
@@ -107,10 +108,14 @@ public class MainFragment extends BaseFragment {
             if (resultCode == Activity.RESULT_OK) {
                 if (data != null) {
                     mCurrentPage = data.getIntExtra(FullScreenActivity.EXTRA_CURRENT_PAGE, mCurrentPage);
-                    mPhotos =
-                            (ArrayList<Photo>) data.getSerializableExtra(FullScreenActivity.EXTRA_PHOTOS);
-                    mAdapter.notifyDataSetChanged();
-                    mRecyclerView.getLayoutManager().scrollToPosition(data.getIntExtra(FullScreenActivity.EXTRA_POSITION, 0));
+                    ArrayList<Photo> photos = (ArrayList<Photo>) data.getSerializableExtra(FullScreenActivity.EXTRA_PHOTOS);
+                    if (mPhotos.size() != photos.size()) {
+                        mPhotos.clear();
+                        mPhotos.addAll(photos);
+                        mAdapter.notifyDataSetChanged();
+                        mRecyclerView.getLayoutManager().scrollToPosition(
+                                data.getIntExtra(FullScreenActivity.EXTRA_POSITION, 0));
+                    }
                 }
             }
         }
@@ -137,8 +142,8 @@ public class MainFragment extends BaseFragment {
                                 new BaseRecyclerGridAdapter.OnItemClickListener() {
                                     @Override
                                     public void onItemClick(View view, int position) {
-                                        FullScreenActivity.showImageInFullScreenWithPos(MainFragment.this,
-                                                position, mPhotos, mCurrentPage);
+                                        FullScreenActivity.showImageInFullScreenWithPos(getActivity(),
+                                                position, mPhotos, mCurrentPage, (ImageView)view.findViewById(R.id.img_photo));
                                     }
                                 });
                         mRecyclerView.setAdapter(mAdapter);

@@ -9,18 +9,26 @@ import com.koushikdutta.ion.Response;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.transition.ChangeBounds;
+import android.transition.ChangeImageTransform;
+import android.transition.Fade;
+import android.transition.Transition;
+import android.transition.TransitionSet;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
@@ -61,17 +69,32 @@ public class FullScreenActivity extends AppCompatActivity {
         }
     };
 
-    public static void showImageInFullScreenWithPos(Fragment fragment, int pos,
-            ArrayList<Photo> photos, int currentPage) {
-        Intent intent = new Intent(fragment.getActivity(), FullScreenActivity.class);
+    public static void showImageInFullScreenWithPos(Activity activity, int pos,
+            ArrayList<Photo> photos, int currentPage, ImageView imageView) {
+        Intent intent = new Intent(activity, FullScreenActivity.class);
         intent.putExtra(EXTRA_POSITION, pos);
         intent.putExtra(EXTRA_PHOTOS, photos);
         intent.putExtra(EXTRA_CURRENT_PAGE, currentPage);
-        fragment.startActivityForResult(intent, REQUEST_FULL_SCREEN_IMAGE);
+        ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(activity,
+                imageView, activity.getString(R.string.photo_transition_name));
+        ActivityCompat.startActivityForResult(activity, intent, REQUEST_FULL_SCREEN_IMAGE, options.toBundle());
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        supportRequestWindowFeature(Window.FEATURE_CONTENT_TRANSITIONS);
+        Transition fade = new Fade();
+        fade.excludeTarget(android.R.id.statusBarBackground, true);
+        fade.excludeTarget(android.R.id.navigationBarBackground, true);
+
+        Window window = getWindow();
+        window.setEnterTransition(fade);
+        window.setExitTransition(fade);
+        TransitionSet
+                transitionSet = new TransitionSet().addTransition(new ChangeImageTransform())
+                .addTransition(new ChangeBounds());
+        window.setSharedElementEnterTransition(transitionSet);
+        window.setSharedElementExitTransition(transitionSet);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_full_screen);
 
@@ -87,6 +110,12 @@ public class FullScreenActivity extends AppCompatActivity {
 
         mViewPager = (ViewPager) findViewById(R.id.viewpager);
         mAdapter = new ViewPagerAdapter(this, mPhotos);
+        mAdapter.setOnImageLoadedListener(new ViewPagerAdapter.OnImageLoadedListener() {
+            @Override
+            public void onImageLoaded() {
+                supportStartPostponedEnterTransition();
+            }
+        });
         mViewPager.setAdapter(mAdapter);
         ViewPager.OnPageChangeListener pageChangeListener = new ViewPager.OnPageChangeListener() {
             @Override
@@ -97,7 +126,7 @@ public class FullScreenActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 mToolbar.setTitle(mPhotos.get(position).getName());
-                if (mCurrentPage < mTotalPages) {
+                if (mTotalPages == 0 || mCurrentPage < mTotalPages) {
                     int totalSize = mPhotos.size();
                     if (position >= totalSize - 3 && position < totalSize && !mIsLoadingMore) {
                         mIsLoadingMore = true;
@@ -114,6 +143,7 @@ public class FullScreenActivity extends AppCompatActivity {
         mViewPager.addOnPageChangeListener(pageChangeListener);
         mViewPager.setCurrentItem(position);
         pageChangeListener.onPageSelected(position);
+        supportPostponeEnterTransition();
     }
 
     @Override
@@ -146,6 +176,10 @@ public class FullScreenActivity extends AppCompatActivity {
         private Context mContext;
         private ArrayList<Photo> mPhotos;
         private LayoutInflater mInflater;
+        public interface OnImageLoadedListener {
+            void onImageLoaded();
+        }
+        private OnImageLoadedListener mImageLoadedListener;
 
         public ViewPagerAdapter(Context context, ArrayList<Photo> photos) {
             mContext = context;
@@ -156,6 +190,10 @@ public class FullScreenActivity extends AppCompatActivity {
         public void updatePhotos(ArrayList<Photo> photos) {
             mPhotos = photos;
             notifyDataSetChanged();
+        }
+
+        public void setOnImageLoadedListener(OnImageLoadedListener listener) {
+            mImageLoadedListener = listener;
         }
 
         @Override
@@ -174,11 +212,13 @@ public class FullScreenActivity extends AppCompatActivity {
                     .into(imgAlbumArt, new Callback() {
                         @Override
                         public void onSuccess() {
+                            mImageLoadedListener.onImageLoaded();
                             progressBar.setVisibility(View.GONE);
                         }
 
                         @Override
                         public void onError() {
+                            mImageLoadedListener.onImageLoaded();
                             progressBar.setVisibility(View.GONE);
                         }
                     });
