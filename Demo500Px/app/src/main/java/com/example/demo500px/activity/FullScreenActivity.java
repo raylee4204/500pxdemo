@@ -1,7 +1,11 @@
 package com.example.demo500px.activity;
 
 import com.example.demo500px.R;
+import com.example.demo500px.network.PxApi;
 import com.example.demo500px.network.model.Photo;
+import com.example.demo500px.network.model.Photos;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.ion.Response;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -36,7 +40,26 @@ public class FullScreenActivity extends AppCompatActivity {
     private ViewPager mViewPager;
     private ViewPagerAdapter mAdapter;
     private ArrayList<Photo> mPhotos;
-    private int mCurrentPage;
+    private int mCurrentPage , mTotalPages;
+    private boolean mIsLoadingMore;
+
+    private final FutureCallback<Response<Photos>> mCallback = new FutureCallback<Response<Photos>>() {
+        @Override
+        public void onCompleted(Exception e, Response<Photos> result) {
+            if (e != null) {
+                mCurrentPage--;
+                return;
+            }
+
+            Photos photos = result.getResult();
+            if (photos != null) {
+                mTotalPages = photos.getTotalPages();
+                mPhotos.addAll(photos.getPhotos());
+                mAdapter.updatePhotos(mPhotos);
+            }
+            mIsLoadingMore = false;
+        }
+    };
 
     public static void showImageInFullScreenWithPos(Fragment fragment, int pos,
             ArrayList<Photo> photos, int currentPage) {
@@ -74,6 +97,14 @@ public class FullScreenActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 mToolbar.setTitle(mPhotos.get(position).getName());
+                if (mCurrentPage < mTotalPages) {
+                    int totalSize = mPhotos.size();
+                    if (position >= totalSize - 3 && position < totalSize && !mIsLoadingMore) {
+                        mIsLoadingMore = true;
+                        mCurrentPage++;
+                        PxApi.getPhotos(FullScreenActivity.this, mCurrentPage, mCallback);
+                    }
+                }
             }
 
             @Override
@@ -83,7 +114,6 @@ public class FullScreenActivity extends AppCompatActivity {
         mViewPager.addOnPageChangeListener(pageChangeListener);
         mViewPager.setCurrentItem(position);
         pageChangeListener.onPageSelected(position);
-
     }
 
     @Override
@@ -109,8 +139,7 @@ public class FullScreenActivity extends AppCompatActivity {
         }
 
         public void updatePhotos(ArrayList<Photo> photos) {
-            mPhotos.clear();
-            mPhotos.addAll(photos);
+            mPhotos = photos;
             notifyDataSetChanged();
         }
 
