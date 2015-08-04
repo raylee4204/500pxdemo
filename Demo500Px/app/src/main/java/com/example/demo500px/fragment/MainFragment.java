@@ -80,11 +80,14 @@ public class MainFragment extends BaseFragment {
                 visibleItemCount = mRecyclerView.getChildCount();
                 totalItemCount = layoutManager.getItemCount();
 
-                boolean loadMore = (totalItemCount - visibleItemCount) <= (firstVisibleItem + 5);
-                if (loadMore && !mIsLoadingMore && dy > 0) {
-                    mIsLoadingMore = true;
-                    mCurrentPage++;
-                    PxApi.getPhotos(MainFragment.this, mCurrentPage, mCallback);
+                if (mCurrentPage < mTotalPages) {
+                    boolean loadMore =
+                            (totalItemCount - visibleItemCount) <= (firstVisibleItem + 5);
+                    if (loadMore && !mIsLoadingMore && dy > 0) {
+                        mIsLoadingMore = true;
+                        mCurrentPage++;
+                        PxApi.getPhotos(MainFragment.this, mCurrentPage, mCallback);
+                    }
                 }
             }
         });
