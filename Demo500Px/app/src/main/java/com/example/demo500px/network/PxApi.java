@@ -13,6 +13,7 @@ import com.koushikdutta.ion.Ion;
 import com.koushikdutta.ion.Response;
 import com.koushikdutta.ion.loader.AsyncHttpRequestFactory;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 import android.support.v4.app.Fragment;
@@ -60,6 +61,23 @@ public class PxApi {
                 .build();
 
         Ion.with(fragment)
+                .load("GET", uri.toString())
+                .as(TYPE_TOKEN_PHOTOS)
+                .withResponse()
+                .setCallback(callback);
+    }
+
+    public static void getPhotos(Activity activity, int page, FutureCallback<Response<Photos>> callback) {
+        Uri.Builder uriBuilder = Uri.parse(HOST + API_ENDPOINT_PHOTOS)
+                .buildUpon();
+        Uri uri = uriBuilder.appendQueryParameter("consumer_key", CONSUMER_KEY)
+                .appendQueryParameter("feature", "popular")
+                .appendQueryParameter("page", String.valueOf(page))
+                .appendQueryParameter("image_size",
+                        Photo.ImageFormat.SIZE_440 + "," + Photo.ImageFormat.SIZE_1080)
+                .build();
+
+        Ion.with(activity)
                 .load("GET", uri.toString())
                 .as(TYPE_TOKEN_PHOTOS)
                 .withResponse()
