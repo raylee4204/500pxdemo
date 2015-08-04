@@ -26,6 +26,12 @@ public class PhotoGridAdapter extends BaseRecyclerGridAdapter<PhotoGridAdapter.P
         mContext = context;
         mInflater = LayoutInflater.from(context);
         mPhotos = photos;
+        setHasStableIds(true);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return mPhotos.get(position).getName().hashCode();
     }
 
     @Override
