@@ -1,6 +1,7 @@
 package com.example.demo500px.fragment;
 
 import com.example.demo500px.R;
+import com.example.demo500px.activity.FullScreenActivity;
 import com.example.demo500px.adapter.BaseRecyclerGridAdapter;
 import com.example.demo500px.adapter.PhotoGridAdapter;
 import com.example.demo500px.network.PxApi;
@@ -42,13 +43,14 @@ public class MainFragment extends BaseFragment {
 
             Photos photos = result.getResult();
             if (photos != null) {
+                mTotalPages = photos.getTotalPages();
                 populatePhotosOnUiThread(photos.getPhotos());
             }
             mIsLoadingMore = false;
         }
     };
 
-    private int mCurrentPage = 1;
+    private int mCurrentPage = 1, mTotalPages;
     private boolean mIsLoadingMore = false;
     private View mLoadingView;
 
@@ -114,7 +116,8 @@ public class MainFragment extends BaseFragment {
                                 new BaseRecyclerGridAdapter.OnItemClickListener() {
                                     @Override
                                     public void onItemClick(View view, int position) {
-
+                                        FullScreenActivity.showImageInFullScreenWithPos(MainFragment.this,
+                                                position, mPhotos, mCurrentPage);
                                     }
                                 });
                         mRecyclerView.setAdapter(mAdapter);
